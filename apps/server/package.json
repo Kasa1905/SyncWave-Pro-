@@ -1,0 +1,46 @@
+{
+  "name": "@syncwave/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts,.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.4.2",
+    "@fastify/jwt": "^7.2.4",
+    "@fastify/multipart": "^8.0.0",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/static": "^6.12.0",
+    "@sinclair/typebox": "^0.31.28",
+    "@syncwave/shared": "file:../../packages/shared",
+    "dotenv": "^17.2.1",
+    "fastify": "^4.24.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "jsonwebtoken": "^9.0.2",
+    "mime-types": "^2.1.35",
+    "nanoid": "^5.0.3",
+    "pino": "^8.16.2",
+    "ws": "^8.14.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^20.9.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^8.57.0",
+    "tsc-alias": "^1.8.8",
+    "tsx": "^4.1.4",
+    "typescript": "^5.2.2",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,210 @@
+/**
+ * Authentication Routes
+ * Handles user authentication, registration, and JWT management
+ */
+
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { 
+  createSuccessResponse, 
+  createErrorResponse, 
+  LoginRequest,
+  RegisterRequest,
+  User 
+} from '@syncwave/shared';
+
+// In-memory user store (replace with database in production)
+const users = new Map<string, User>();
+const usersByEmail = new Map<string, User>();
+
+export async function authRoutes(app: FastifyInstance): Promise<void> {
+  // Register new user
+  app.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = RegisterRequest.parse(request.body);
+      
+      // Check if user already exists
+      if (usersByEmail.has(body.email)) {
+        const response = createErrorResponse(
+          'USER_EXISTS',
+          'User with this email already exists'
+        );
+        return reply.status(409).send(response);
+      }
+
+      // Create new user
+      const user: User = {
+        id: generateUserId(),
+        email: body.email,
+        username: body.username,
+        displayName: body.displayName,
+        avatar: body.avatar || null,
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+        isOnline: true,
+      };
+
+      // Store user (in production, hash password and save to database)
+      users.set(user.id, user);
+      usersByEmail.set(user.email, user);
+
+      // Generate JWT token
+      const token = await app.jwt.sign({
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      });
+
+      const response = createSuccessResponse({
+        user,
+        token,
+      });
+
+      reply.send(response);
+        } catch (error) {
+      console.error('Registration error:', error);
+      app.log.error({ error }, 'Registration error');
+      const response = createErrorResponse(
+        'INTERNAL_SERVER_ERROR',
+        'Internal server error'
+      );
+      return reply.status(500).send(response);
+    }
+  });
+
+  // Login user
+  app.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = LoginRequest.parse(request.body);
+      
+      // Find user by email
+      const user = usersByEmail.get(body.email);
+      if (!user) {
+        const response = createErrorResponse(
+          'INVALID_CREDENTIALS',
+          'Invalid email or password'
+        );
+        return reply.status(401).send(response);
+      }
+
+      // In production, verify password hash here
+      // For demo purposes, we'll accept any password
+
+      // Update last active
+      user.lastActiveAt = new Date();
+      user.isOnline = true;
+
+      // Generate JWT token
+      const token = await app.jwt.sign({
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      });
+
+      const response = createSuccessResponse({
+        user,
+        token,
+      });
+
+      reply.send(response);
+    } catch (error) {
+      app.log.error({ error }, 'Login error');
+      const response = createErrorResponse(
+        'LOGIN_FAILED',
+        'Failed to login'
+      );
+      reply.status(400).send(response);
+    }
+  });
+
+  // Get current user profile
+  app.get('/me', {
+    preHandler: async (request: FastifyRequest) => {
+      await request.jwtVerify();
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const payload = request.user as any;
+      const user = users.get(payload.userId);
+      
+      if (!user) {
+        const response = createErrorResponse(
+          'USER_NOT_FOUND',
+          'User not found'
+        );
+        return reply.status(404).send(response);
+      }
+
+      const response = createSuccessResponse({ user });
+      reply.send(response);
+    } catch (error) {
+      app.log.error({ error }, 'Get profile error');
+      const response = createErrorResponse(
+        'PROFILE_FETCH_FAILED',
+        'Failed to fetch user profile'
+      );
+      reply.status(400).send(response);
+    }
+  });
+
+  // Logout user
+  app.post('/logout', {
+    preHandler: async (request: FastifyRequest) => {
+      await request.jwtVerify();
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const payload = request.user as any;
+      const user = users.get(payload.userId);
+      
+      if (user) {
+        user.isOnline = false;
+        user.lastActiveAt = new Date();
+      }
+
+      const response = createSuccessResponse({ 
+        message: 'Logged out successfully' 
+      });
+      reply.send(response);
+    } catch (error) {
+      app.log.error({ error }, 'Logout error');
+      const response = createErrorResponse(
+        'LOGOUT_FAILED',
+        'Failed to logout'
+      );
+      reply.status(400).send(response);
+    }
+  });
+
+  // Refresh token
+  app.post('/refresh', {
+    preHandler: async (request: FastifyRequest) => {
+      await request.jwtVerify();
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const payload = request.user as any;
+      
+      // Generate new token
+      const token = await app.jwt.sign({
+        userId: payload.userId,
+        email: payload.email,
+        username: payload.username,
+      });
+
+      const response = createSuccessResponse({ token });
+      reply.send(response);
+    } catch (error) {
+      app.log.error({ error }, 'Token refresh error');
+      const response = createErrorResponse(
+        'TOKEN_REFRESH_FAILED',
+        'Failed to refresh token'
+      );
+      reply.status(400).send(response);
+    }
+  });
+}
+
+// Helper functions
+function generateUserId(): string {
+  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}

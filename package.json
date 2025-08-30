@@ -1,0 +1,32 @@
+{
+  "name": "@syncwave/monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.8.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^1.10.7",
+    "eslint": "^8.57.0",
+    "prettier": "^3.0.3",
+    "turbo": "^1.10.7",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "pino-pretty": "^13.1.1"
+  }
+}
